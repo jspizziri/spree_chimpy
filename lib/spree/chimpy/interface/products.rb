@@ -4,9 +4,14 @@ module Spree::Chimpy
       delegate :log, :store_api_call, to: Spree::Chimpy
       include Spree.railtie_routes_url_helpers
 
-      def initialize(variant)
-        @variant = variant
-        @product = variant.product
+      def initialize(variant, product)
+        if variant != nil
+          @variant = variant
+          @product = variant.product
+        else
+          @variant = product.master
+          @product = product
+        end
       end
 
       def self.mailchimp_variant_id(variant)
@@ -21,6 +26,10 @@ module Spree::Chimpy
         order.line_items.each do |line|
           new(line.variant).ensure_product
         end
+      end
+
+      def self.sync_product(product)
+        new(nil, product).ensure_product
       end
 
       def ensure_product
