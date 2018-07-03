@@ -34,12 +34,24 @@ module Spree::Chimpy
 
       def ensure_product
         if product_exists_in_mailchimp?
-          upsert_variants
+          store_api_call
+            .products
+            .patch(body: product_hash)
         else
           store_api_call
             .products
             .create(body: product_hash)
         end
+        upsert_variants
+      end
+
+      def upsert_single_variant(variant)
+        data = self.class.variant_hash(variant)
+
+        store_api_call
+          .products(variant.product_id)
+          .variants(variant.id)
+          .upsert(body: data)
       end
 
       private
@@ -47,12 +59,7 @@ module Spree::Chimpy
       def upsert_variants
         all_variants = @product.variants.any? ? @product.variants : [@product.master]
         all_variants.each do |v|
-          data = self.class.variant_hash(v)
-
-          store_api_call
-            .products(v.product_id)
-            .variants(v.id)
-            .upsert(body: data)
+          upsert_single_variant(v)
         end
       end
 
