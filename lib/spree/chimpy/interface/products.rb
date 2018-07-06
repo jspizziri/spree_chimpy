@@ -4,14 +4,9 @@ module Spree::Chimpy
       delegate :log, :store_api_call, to: Spree::Chimpy
       include Spree.railtie_routes_url_helpers
 
-      def initialize(variant, product)
-        if variant != nil
+      def initialize(variant)
           @variant = variant
           @product = variant.product
-        else
-          @variant = product.master
-          @product = product
-        end
       end
 
       def self.mailchimp_variant_id(variant)
@@ -29,7 +24,29 @@ module Spree::Chimpy
       end
 
       def self.sync_product(product)
-        new(nil, product).ensure_product
+        variant = product.master
+        if product.master.deleted_at == nil
+          new(variant).ensure_product
+        else
+          new(variant).delete_product(product)
+        end
+      end
+
+      def delete_product(product)
+        self.store_api_call
+          .products(product.id)
+          .delete
+      end
+
+      def delete_variant(variant)
+        self.store_api_call
+          .products(variant.product_id)
+          .variants(variant.id)
+          .delete
+      end
+
+      def self.sync_variant(variant)
+        new(variant).ensure_product
       end
 
       def ensure_product
@@ -65,7 +82,7 @@ module Spree::Chimpy
 
       def product_exists_in_mailchimp?
         response = store_api_call
-          .products(@variant.product.id)
+          .products(@product.id)
           .retrieve(params: { "fields" => "id" })
           .body
         !response["id"].nil?
@@ -82,7 +99,7 @@ module Spree::Chimpy
 
         all_variants = @product.variants.any? ? @product.variants : [@product.master]
         data = {
-          id: self.class.mailchimp_product_id(@variant),
+          id: @product.id.to_s,
           title: @product.name,
           handle: @product.slug,
           url: self.class.product_url_or_default(@product),
