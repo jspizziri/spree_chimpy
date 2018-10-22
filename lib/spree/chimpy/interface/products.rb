@@ -39,7 +39,6 @@ module Spree::Chimpy
         all_variants = @product.variants.any? ? @product.variants : [@product.master]
         all_variants.each do |v|
           data = self.class.variant_hash(v)
-          data.delete(:id)
 
           store_api_call
             .products(v.product_id)
@@ -82,19 +81,26 @@ module Spree::Chimpy
         if @product.respond_to?(:available_on) && @product.available_on
           data[:published_at_foreign] = @product.available_on.to_formatted_s(:db)
         end
+
         data
       end
 
       def self.variant_hash(variant)
-        {
+        data = {
           id: mailchimp_variant_id(variant),
           title: variant.name,
           sku: variant.sku,
           url: product_url_or_default(variant.product),
           price: variant.price.to_f,
-          image_url: variant_image_url(variant),
+
           inventory_quantity: variant.total_on_hand == Float::INFINITY ? 999 : variant.total_on_hand
         }
+
+        if variant.images.any?
+          data[:image_url] = variant_image_url variant
+        end
+
+        data
       end
 
       def self.variant_image_url(variant)
@@ -106,14 +112,15 @@ module Spree::Chimpy
       end
 
       def self.product_url_or_default(product)
-        if self.respond_to?(:product_url)
-          product_url(product)
-        else
-          URI::HTTP.build({
-            host: Spree::Store.current.url,
-            :path => "/products/#{product.slug}"}
-          ).to_s
-        end
+          if self.respond_to?(:product_url)
+              product_url(product)
+          else
+              #throw "#{Spree::Store.current.url.gsub(/(^\w+:|^)\/\//,'')}"
+              URI::HTTP.build({
+                host: Spree::Store.current.url.gsub(/(^\w+:|^)\/\//,''),
+                :path => "/products/#{product.slug}"}
+              ).to_s
+          end
       end
     end
   end
