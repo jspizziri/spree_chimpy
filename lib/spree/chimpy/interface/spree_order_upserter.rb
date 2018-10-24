@@ -80,8 +80,13 @@ module Spree::Chimpy
           }
         }
 
-        if source
-          data[:campaign_id] = source.campaign_id
+        if source && source.campaign_id
+          begin
+            campaign_api_call(source.campaign_id)
+            data[:campaign_id] = source.campaign_id
+          rescue Gibbon::MailChimpError => e
+            log "Campaign with id: #{source.campaign_id} doesn't exist."
+          end
         end
 
         data

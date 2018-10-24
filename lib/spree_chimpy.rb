@@ -38,6 +38,10 @@ module Spree::Chimpy
     Spree::Chimpy.api.ecommerce.stores(Spree::Chimpy::Config.store_id)
   end
 
+  def campaign_api_call
+    Spree::Chimpy.api.campaigns
+  end
+
   def list
     require 'spree/chimpy/interface/list'
     @list ||= Interface::List.new(Config.list_name,
