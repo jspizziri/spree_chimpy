@@ -80,7 +80,6 @@ module Spree::Chimpy
           }
         }
 
-
         if source && source.campaign_id
           begin
             campaign_api_call(source.campaign_id)
