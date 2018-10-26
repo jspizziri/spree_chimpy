@@ -1,7 +1,7 @@
 module Spree::Chimpy
   module Interface
     class SpreeOrderUpserter
-      delegate :log, :store_api_call, to: Spree::Chimpy
+      delegate :log, :store_api_call, :campaign_api_call, to: Spree::Chimpy
 
       # This is a generic Upserter Class for Spree Orders
       #
