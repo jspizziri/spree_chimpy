@@ -38,7 +38,7 @@ module Spree::Chimpy
     Spree::Chimpy.api.ecommerce.stores(Spree::Chimpy::Config.store_id)
   end
 
-  def campaign_api_call(campaign_id)
+  def get_campaign_by_id(campaign_id)
     Spree::Chimpy.api.campaigns(campaign_id).retrieve
   end
 
