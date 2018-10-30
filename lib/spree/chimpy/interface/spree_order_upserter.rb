@@ -1,7 +1,7 @@
 module Spree::Chimpy
   module Interface
     class SpreeOrderUpserter
-      delegate :log, :store_api_call, to: Spree::Chimpy
+      delegate :log, :store_api_call, :get_campaign_by_id, to: Spree::Chimpy
 
       # This is a generic Upserter Class for Spree Orders
       #
@@ -80,8 +80,13 @@ module Spree::Chimpy
           }
         }
 
-        if source
-          data[:campaign_id] = source.campaign_id
+        if source && source.campaign_id
+          begin
+            get_campaign_by_id(source.campaign_id)
+            data[:campaign_id] = source.campaign_id
+          rescue Gibbon::MailChimpError => e
+            log "Campaign with id: #{source.campaign_id} doesn't exist."
+          end
         end
 
         data
