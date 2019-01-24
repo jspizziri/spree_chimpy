@@ -121,11 +121,17 @@ module Spree::Chimpy
       end
 
       def find_list_id(name)
-        response = api_call
-          .retrieve(params: {"fields" => "lists.id,lists.name"})
-          .body
-        list = response["lists"].detect { |r| r["name"] == name }
-        list["id"] if list
+        # if mailchimp errors we shouldn't fail
+        begin
+          response = api_call
+            .retrieve(params: {"fields" => "lists.id,lists.name"})
+            .body
+          list = response["lists"].detect { |r| r["name"] == name }
+          list["id"] if list
+        rescue Gibbon::MailChimpError
+          Rails.logger.error "Unable to connect to mailchimp."
+          return nil
+        end
       end
 
       def list_id
