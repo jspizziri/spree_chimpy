@@ -1,4 +1,5 @@
 require 'digest'
+require 'multi_json'
 
 module Spree::Chimpy
   module Interface
@@ -21,18 +22,28 @@ module Spree::Chimpy
         end
       end
 
-      def subscribe(email, merge_vars = {}, options = {})
+      def subscribe(email, merge_vars, options = {})
         log "Subscribing #{email} to #{@list_name}"
 
         begin
-          api_member_call(email)
-            .upsert(body: {
-              email_address: email,
-              status: "subscribed",
-              merge_fields: merge_vars,
-              email_type: 'html'
-            }) #, @double_opt_in, true, true, @send_welcome_email)
+          data = {
+            email_address: email,
+            status: "subscribed",
+            email_type: 'html'
+          }
 
+          if merge_vars
+            data[:merge_fields] = merge_vars
+          end
+
+          if options[:interests]
+            data[:interests] = options[:interests]
+          end
+
+          api_member_call(email)
+            .upsert(body: data) #, @double_opt_in, true, true, @send_welcome_email)
+
+          # add to customer segment
           segment([email]) if options[:customer]
         rescue Gibbon::MailChimpError => ex
           log "Subscriber #{email} rejected for reason: [#{ex.raw_body}]"
@@ -110,11 +121,17 @@ module Spree::Chimpy
       end
 
       def find_list_id(name)
-        response = api_call
-          .retrieve(params: {"fields" => "lists.id,lists.name"})
-          .body
-        list = response["lists"].detect { |r| r["name"] == name }
-        list["id"] if list
+        # if mailchimp errors we shouldn't fail
+        begin
+          response = api_call
+            .retrieve(params: {"fields" => "lists.id,lists.name"})
+            .body
+          list = response["lists"].detect { |r| r["name"] == name }
+          list["id"] if list
+        rescue Gibbon::MailChimpError
+          Rails.logger.error "Unable to connect to mailchimp."
+          return nil
+        end
       end
 
       def list_id
