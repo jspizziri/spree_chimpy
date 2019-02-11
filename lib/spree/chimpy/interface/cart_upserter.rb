@@ -14,7 +14,9 @@ module Spree::Chimpy
       end
 
       def perform_upsert
-        if (@order.completed?)
+        if (@order.completed? || !@order.line_items.any?)
+          # If an order is completed, we don't want the Cart object in MailChimp anymore
+          # Additionally, if all line items are removed, we don't want the EMPTY Cart in MailChimp
           remove_cart
         else
           add_or_update_cart
