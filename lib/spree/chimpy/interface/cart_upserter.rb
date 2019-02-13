@@ -14,7 +14,8 @@ module Spree::Chimpy
       end
 
       def perform_upsert
-        if (@order.completed?)
+        if (@order.completed? || !@order.line_items.any?)
+          # NOTE: If an order is complete or has no line items, remove the associated cart from MailChimp
           remove_cart
         else
           add_or_update_cart
