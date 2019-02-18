@@ -21,30 +21,29 @@ module Spree::Chimpy
         if (data[:campaign_id])
           log "Order #{@order.number} is linked to campaign #{data[:campaign_id]}"
         end
-        begin
-          find_and_update_order(data)
-        rescue Gibbon::MailChimpError => e
+
+        if mail_chimp_order_exists?
+          log "Updating order #{@order.number} for #{data[:customer][:id]}"
+          update_order(data)
+        else
           log "Order #{@order.number} Not Found, creating order"
           create_order(data)
         end
       end
 
-      def find_and_update_order(data)
-        # retrieval is checks if the order exists and raises a Gibbon::MailChimpError when not found
-        store_api_call.orders(@order.number).retrieve(params: { "fields" => "id" })
-        log "Order #{@order.number} exists, updating data"
+      def update_order(data)
         store_api_call.orders(@order.number).update(body: data)
       end
 
       def create_order(data)
         begin
-          store_api_call
-            .orders
-            .create(body: data)
+          store_api_call.orders.create(body: data)
+
         rescue Gibbon::MailChimpError => e
           log "Unable to create order #{@order.number}. [#{e.raw_body}]"
         end
       end
+
     end
   end
 end

@@ -45,7 +45,7 @@ module Spree::Chimpy
       protected
 
       def perform_upsert
-        log "[Spree Chimpy: Error]:      Upsert method is not implemented"
+        log "Upsert method not implemented"
       end
 
       # This method generates a hash object containing the common data elements
@@ -101,6 +101,48 @@ module Spree::Chimpy
           price:          variant.price.to_f,
           quantity:           line_item.quantity
         }
+      end
+
+      # Utility method used to check whether or not an Order record exists in
+      # MailChimp for the provided @order
+      def mail_chimp_order_exists?
+        log "Checking for existing Order record with id #{@order.number}"
+        begin
+          # Check MailChimp for an Order with the associated ID
+          response = store_api_call.orders(@order.number).retrieve(params: { "fields" => "id" })
+          # NOTE: This API call will raise a Gibbon::MailChimpError if the Order
+          #       does not exist, so any non-error return from the above should
+          #       result in a TRUE return from this method.
+
+          return true ## The order EXISTS
+        rescue Gibbon::MailChimpError => e
+          # NOTE: If we encounter this error here, it means no ORDER exists in
+          #       MailChimp for the specified ID. In this case, that's just fine
+          #       so we want to swallow the error and move on.
+
+          return false # The order DOES NOT EXIST
+        end
+      end
+
+      # Utility method used to check whether or not an Cart record exists in
+      # MailChimp for the provided @order
+      def mail_chimp_cart_exists?
+        log "Checking for existing Cart record with id #{@order.number}"
+        begin
+          # Check MailChimp for a Cart with the associated ID
+          store_api_call.carts(@order.number).retrieve(params: { "fields" => "id" })
+          # NOTE: This API call will raise a Gibbon::MailChimpError if the Cart
+          #       does not exist, so any non-error return from the above should
+          #       result in a TRUE return from this method.
+
+          true ## The cart EXISTS
+        rescue Gibbon::MailChimpError => e
+          # NOTE: If we encounter this error here, it means no ORDER exists in
+          #       MailChimp for the specified ID. In this case, that's just fine
+          #       so we want to swallow the error and move on.
+
+          false # The cart DOES NOT EXIST
+        end
       end
     end
   end
