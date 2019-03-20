@@ -17,7 +17,7 @@ namespace :spree_chimpy do
         print '.'
         batch.each do |order|
           begin
-            order.send_order_to_mail_chimp
+            order.notify_mail_chimp
           rescue => exception
             if defined?(::Delayed::Job)
               raise exception
