@@ -32,11 +32,20 @@ module Spree::Chimpy
       end
 
       def update_order(data)
+        # NOTE: To reduce API calls, this assumes defunct cart records were removed
+        # when the Order record was originally created
         store_api_call.orders(@order.number).update(body: data)
       end
 
       def create_order(data)
+        # NOTE: In MailChimp, carts and orders are mutually exclusive. If we are
+        # pushing an order, there should be no cart (and vice vesa). This  is
+        # built on the convention that this method only fires for COMPLETED orders,
+        # and handles deletion of the defunct Cart record
         begin
+          log "Removing Cart #{@order.number} if it exists."
+          remove_cart()
+
           store_api_call.orders.create(body: data)
 
         rescue Gibbon::MailChimpError => e

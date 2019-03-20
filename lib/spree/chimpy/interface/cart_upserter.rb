@@ -14,18 +14,11 @@ module Spree::Chimpy
       end
 
       def perform_upsert
-        if (@order.completed?)
-          # Abandoned Cart automations will continue to send emails for any Cart in
-          # the system, so we need to remove Carts as soon as an order is completed
-          remove_cart if mail_chimp_cart_exists?
-        else
-          # If the order is not complete, update the cart unless an Order record
-          # already exists in MailChimp)
-          add_or_update_cart unless mail_chimp_order_exists?
-        end
-      end
-
-      def add_or_update_cart
+        # NOTE:     In MailChimp, carts and orders are mutually exclusive. If
+        # we are pushing an order, there should be no cart (and vice vesa). This
+        # is built on the convention that this method only fires for INCOMPLETE
+        # orders, and that the OrderUpserter (which fires only on COMPLETED orders)
+        # will make the call to delete the cart
         data = cart_hash
 
         if (data[:campaign_id])
@@ -56,23 +49,9 @@ module Spree::Chimpy
         create_cart(data) unless @order.line_items.empty?
       end
 
-      def remove_cart
-        begin
-          store_api_call.carts(@order.number).delete
-          # NOTE: Once an Order is complete, we want to remove the Cart record
-          # from MailChimp because it is no longer relevant.
-          #
-          #     NOTE: If the cart is not removed, then it would be included in
-          #     automated Abandoned Cart campaigns, which should not happen if
-          #     the customer has completed their order.
-        rescue Gibbon::MailChimpError => e
-          log "Unable to remove cart #{@order.number}. [#{e.raw_body}]"
-        end
-      end
-
       def create_cart(data)
         begin
-          store_api_call.carts.create(body: data) unless(mail_chimp_order_exists?)
+          store_api_call.carts.create(body: data)
 
         rescue Gibbon::MailChimpError => e
           log "Unable to create cart #{@order.number}. [#{e.raw_body}]"

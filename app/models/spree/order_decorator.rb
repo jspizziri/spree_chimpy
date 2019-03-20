@@ -2,14 +2,20 @@ Spree::Order.class_eval do
   has_one :source, class_name: 'Spree::Chimpy::OrderSource'
 
   around_save :handle_cancelation
-  after_commit :notify_mail_chimp
+  after_create :notify_mail_chimp
+  after_save :notify_mail_chimp
 
   def notify_mail_chimp
-    # Sync the Cart entry in MailChimp (THis will remove the cart if the Order is completed)
-    Spree::Chimpy.enqueue(:cart, self) if Spree::Chimpy.configured?
 
-    # If this Order is complete, send an Order to MailChimp & Remove any existing Carts
-    Spree::Chimpy.enqueue(:order, self) if self.completed? && Spree::Chimpy.configured?
+    if (self.completed?)
+      Rails.logger.info("Order is complete - pushing order")
+      # Sync the Order in MailChimp if the order is complete
+      Spree::Chimpy.enqueue(:order, self) if Spree::Chimpy.configured?
+    else
+      Rails.logger.info("Order is incomplete - pushing cart")
+      # Sync the Cart entry in MailChimp if the order is in progress
+      Spree::Chimpy.enqueue(:cart, self) if Spree::Chimpy.configured?
+    end
   end
 
 private

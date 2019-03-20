@@ -6,6 +6,28 @@ namespace :spree_chimpy do
     end
   end
 
+  namespace :products do
+    desc 'sync all products with mail chimp'
+    task sync: :environment do
+
+      Spree::Product.all.find_in_batches do |batch|
+        Spree::Chimpy.log_info('Product Sync', 'Syncing all products with mail chimp')
+
+        batch.each do |product|
+          begin
+            product.sync_with_mail_chimp
+          rescue => exception
+            if defined?(::Delayed::Job)
+              raise exception
+            else
+              Spree::Chimpy.log_error('Product Sync', exception)
+            end
+          end
+        end
+      end
+    end
+  end
+
   namespace :orders do
     desc 'sync all orders with mail chimp'
     task sync: :environment do
