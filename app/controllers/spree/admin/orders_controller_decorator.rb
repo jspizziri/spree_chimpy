@@ -9,11 +9,13 @@ Spree::Admin::OrdersController.class_eval do
   #       2.  It can be used to perform a bulk sync if the automated process needs to be
   #           turned off for any reason
   def push_all_to_mail_chimp
-    Spree::Order.where.not(item_count: 0).each do |order|
-      order.notify_mail_chimp
+    Spree::Order.where.not(item_count: 0).find_in_batches do |batch|
+      batch.each do |order|
+        order.notify_mail_chimp
+      end
     end
 
-    flash[:success] = 'MailChimp sync queued successfully'
+    flash[:success] = 'MailChimp Order sync queued successfully'
     redirect_to admin_orders_url()
   end
 

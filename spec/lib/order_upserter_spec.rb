@@ -51,15 +51,8 @@ describe Spree::Chimpy::Interface::OrderUpserter do
       allow(store_api).to receive(:orders)
         .with(anything)
         .and_return(order_api)
-      allow(Spree::Chimpy::Interface::Products).to receive(:ensure_products)
       allow(Spree::Chimpy::Interface::CustomerUpserter).to receive(:new).with(order) { customer_upserter }
       allow(customer_upserter).to receive(:ensure_customer) { customer_id }
-    end
-
-    it "calls ensure_products" do
-      allow(interface).to receive(:perform_upsert)
-      expect(Spree::Chimpy::Interface::Products).to receive(:ensure_products).with(order)
-      interface.upsert
     end
 
     it "ensures the customer exists and uses that ID" do

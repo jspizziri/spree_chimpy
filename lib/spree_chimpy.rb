@@ -22,6 +22,14 @@ module Spree::Chimpy
     Rails.logger.info "spree_chimpy: #{message}"
   end
 
+  def self.log_info(process, message)
+      Rails.logger.info(process: "spree_chimpy -- #{process}", message: message)
+  end
+
+  def self.log_error(process, exception)
+      Rails.logger.error(process: "spree_chimpy -- #{process}", exception: exception, message: exception.message, backtrace: exception.backtrace)
+  end
+
   def configured?
     Config.key.present? && (Config.list_name.present? || Config.list_id.present?)
   end
@@ -59,6 +67,11 @@ module Spree::Chimpy
   def carts
     require 'spree/chimpy/interface/carts'
     @carts ||= Interface::Carts.new if configured?
+  end
+
+  def products
+    require 'spree/chimpy/interface/products'
+    @products ||= Interface::Products.new if configured?
   end
 
   def list_exists?
@@ -145,6 +158,8 @@ module Spree::Chimpy
           list.subscribe(object.email, Spree::Chimpy::Interface::MergeFieldBuilder.build_merge_fields(object), options)
         when :unsubscribe
           list.unsubscribe(object.email)
+        when :product
+          products.sync(object)
       end
     rescue => e
       Rails.logger.error '**********   BEGIN: SPREE CHIMPY ERROR TRACE   **********'

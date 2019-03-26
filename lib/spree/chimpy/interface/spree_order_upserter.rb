@@ -32,13 +32,6 @@ module Spree::Chimpy
       def upsert
         return unless customer_id
 
-        Products.ensure_products(@order)
-        # Ensure that any products for this @order exist before doing anything
-        # else.
-        #
-        # This will make POST calls for products that are not already registered
-        # inside MailChimp
-
         perform_upsert
       end
 
@@ -96,11 +89,25 @@ module Spree::Chimpy
         variant = line_item.variant
         {
           id: "line_item_#{line_item.id}",
-          product_id:    Products.mailchimp_product_id(variant),
-          product_variant_id: Products.mailchimp_variant_id(variant),
+          product_id:    variant.product_id.to_s,
+          product_variant_id: variant.id.to_s,
           price:          variant.price.to_f,
           quantity:           line_item.quantity
         }
+      end
+
+      def remove_cart
+        begin
+          store_api_call.carts(@order.number).delete
+          # NOTE: Once an Order is complete, we want to remove the Cart record
+          # from MailChimp because it is no longer relevant.
+          #
+          #     NOTE: If the cart is not removed, then it would be included in
+          #     automated Abandoned Cart campaigns, which should not happen if
+          #     the customer has completed their order.
+        rescue Gibbon::MailChimpError => e
+          log "Unable to remove cart #{@order.number}. [#{e.raw_body}]"
+        end
       end
 
       # Utility method used to check whether or not an Order record exists in
